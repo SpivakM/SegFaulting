@@ -7,3 +7,4 @@ pymavlink>=2.4.49
 pandas>=3.0.2
 scipy>=1.16.0
 ahrs>=0.3
+pymap3d>=3.2.0
