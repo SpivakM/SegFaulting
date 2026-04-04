@@ -36,14 +36,13 @@ def process_imu_data(imu_data: pd.DataFrame) -> pd.DataFrame:
     acc_world[:, 2] -= 9.81
     
     # Output
-    vel_data = pd.DataFrame()
-    vel_data["VelH"] = np.sqrt(cumulative_trapezoid(y=acc_world[:, 0], x=time_sec, initial=0) ** 2 + cumulative_trapezoid(y=acc_world[:, 1], x=time_sec, initial=0) ** 2)
-    vel_data["VelZ"] = -cumulative_trapezoid(y=acc_world[:, 2], x=time_sec, initial=0)
-    return vel_data
+    imu_data["VelH"] = np.sqrt(cumulative_trapezoid(y=acc_world[:, 0], x=time_sec, initial=0) ** 2 + cumulative_trapezoid(y=acc_world[:, 1], x=time_sec, initial=0) ** 2)
+    imu_data["VelZ"] = -cumulative_trapezoid(y=acc_world[:, 2], x=time_sec, initial=0)
+    return imu_data
 
 
 if __name__ == "__main__":
-    PATH = "C:\\Users\\Disp\\Desktop\\test_task_challenge\\00000001.bin"
+    PATH = "./test_data/00000001.bin"
     from log_parser import get_data_from_file
     from timeit import timeit
     _, imu_data = get_data_from_file(PATH)
