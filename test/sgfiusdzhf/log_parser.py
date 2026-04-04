@@ -45,14 +45,14 @@ def get_data_from_file(file_path) -> tuple[pd.DataFrame, pd.DataFrame]:
 
         msg_type = msg.get_type()
         if msg_type == "GPS":
-            # There are 2 accelerometers for redundancy. At the moment we should just focus on the readings from one of them
-            if msg.I != 0: continue
             timeUS = msg.TimeUS - time_start
             lat = msg.Lat
             lon = msg.Lng
             alt = msg.Alt
             gps_list.append(GPS_Entry(timeUS, lat, lon, alt))
         elif msg_type == "IMU":
+            # There are 2 accelerometers for redundancy. At the moment we should just focus on the readings from one of them
+            if msg.I != 0: continue
             timeUS = msg.TimeUS - time_start
             accX, accY, accZ = msg.AccX, msg.AccY, msg.AccZ
             gyrX, gyrY, gyrZ = msg.GyrX, msg.GyrY, msg.GyrZ
