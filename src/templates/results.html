@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FileFlow — Results</title>
+  <script src='https://cdn.plot.ly/plotly-3.4.0.min.js'></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js'></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/results.css') }}">
+</head>
+
+<body>
+  <div class="container">
+    <div id="myDiv"></div>
+    <div class="data-fields">
+      <h3>Flight Metrics</h3>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="label">Total Distance</span>
+          <span class="value">{{ data.total_distance | round(2) }} m</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Max Velocity (H)</span>
+          <span class="value">{{ data.max_velocity_h | round(2) }} m/s</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Max Velocity (V)</span>
+          <span class="value">{{ data.max_velocity_v | round(2) }} m/s</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Max Velocity (Total)</span>
+          <span class="value">{{ data.max_velocity | round(2) }} m/s</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Total Time</span>
+          <span class="value">{{ data.total_time | round(2) }} s</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Max Accel (H)</span>
+          <span class="value">{{ data.max_acc_h | round(2) }} m/s²</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Max Accel (V)</span>
+          <span class="value">{{ data.max_acc_v | round(2) }} m/s²</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Max Accel (Total)</span>
+          <span class="value">{{ data.max_acc | round(2) }} m/s²</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Average Velocity</span>
+          <span class="value">{{ data.average_velocity | round(2) }} m/s</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Max Altitude</span>
+          <span class="value">{{ data.max_altitude | round(2) }} m</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Min Altitude</span>
+          <span class="value">{{ data.min_altitude | round(2) }} m</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Altitude Amplitude</span>
+          <span class="value">{{ data.altitude_amp | round(2) }} m</span>
+        </div>
+
+        <div class="stat-item">
+          <span class="label">Horizontal Displacement</span>
+          <span class="value">{{ data.displacement_h | round(2) }} m</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const SESSION_ID = {{ session_id | tojson }};
+    </script>
+    <script src="{{ url_for('static', path='/js/script.js') }}"></script>
+</body>
+
+</html>

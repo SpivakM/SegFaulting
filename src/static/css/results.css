@@ -1,0 +1,100 @@
+/* Reset default browser spacing */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Prevents scrollbars if content fits perfectly */
+}
+
+.container {
+  display: flex;
+  width: 100vw;
+  /* 100% of the Viewport Width */
+  height: 100vh;
+  /* 100% of the Viewport Height */
+}
+
+#myDiv {
+  flex: 0 0 65%;
+  height: 100%;
+  /* Plotly needs the container to have a defined height to fill it */
+}
+
+.data-fields {
+  flex: 1;
+  /* Occupies the remaining 35% */
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  /* Crucial: includes padding in the 100% height calculation */
+  background-color: #ffffff;
+  border-left: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-fields {
+  flex: 1;
+  height: 100vh;
+  padding: 24px;
+  background-color: #1a1a1b;
+  /* Dark, modern dashboard theme */
+  color: #e0e0e0;
+  font-family: 'Inter', -apple-system, sans-serif;
+  border-left: 1px solid #333;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.data-fields h3 {
+  margin-top: 0;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #00d4ff;
+  /* Accent color */
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+/* The Grid Container */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  /* Single column for a sidebar */
+  gap: 12px;
+}
+
+/* Individual Data Row */
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #00d4ff;
+}
+
+.label {
+  font-size: 0.85rem;
+  color: #999;
+  text-transform: capitalize;
+}
+
+.value {
+  font-family: 'Monaco', 'Consolas', monospace;
+  /* Monospaced for numbers */
+  font-weight: bold;
+  color: #fff;
+  font-size: 1rem;
+}
