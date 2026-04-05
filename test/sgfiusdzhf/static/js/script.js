@@ -24,9 +24,6 @@ d3.csv("/data-endpoint", function (err, rows) {
     },
     scene: {
       aspectmode: "data", // Start with cube to see if it fits, then switch to 'data'
-      xaxis: { visible: false, dtick: 10 }, // Grid lines every 10 units
-      yaxis: { visible: false, dtick: 10 },
-      zaxis: { visible: false, dtick: 10 },
       camera: {
         eye: { x: 5, y: 5, z: 5 }, // Move back slightly
         center: { x: 0, y: 0, z: 0 }, // Ensure it's centered
