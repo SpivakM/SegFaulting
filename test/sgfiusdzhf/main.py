@@ -99,8 +99,8 @@ async def results_page(request: Request) -> HTMLResponse:
     gps_data[["x", "y", "z", "color"]].to_csv(data_path)
     latest_metadata["data_path"] = data_path
 
-    context = _get_stats(gps_data, imu_data)
-    context["data"] = latest_metadata
+    context = {}
+    context["data"] = latest_metadata | _get_stats(gps_data, imu_data)
 
     return templates.TemplateResponse(
         name="results.html",
@@ -129,19 +129,21 @@ def _human_size(num: int | float) -> str:
     return f"{num:.1f} TB"
 
 def _get_stats(gps_data: pd.DataFrame, imu_data: pd.DataFrame) -> dict:
+    print(imu_data)
+    print(gps_data)
     stats = dict()
     stats["total_distance"] = calculate_distance(gps_data)
     stats["max_velocity_h"] = imu_data["VelH"].max()
-    stats["max_velocity_v"] = imu_data["VelV"].max()
-    stats["max_velocity"] = np.hypot(imu_data["VelH"], imu_data["VelV"]).max()
+    stats["max_velocity_v"] = imu_data["VelZ"].max()
+    stats["max_velocity"] = np.hypot(imu_data["VelH"], imu_data["VelZ"]).max()
     stats["total_time"] = (imu_data.iloc[-1]["TimeUS"] - imu_data.iloc[0]["TimeUS"]) / 1000000 # Conversion to seconds
     imu_data["AccH"] = np.hypot(imu_data["AccX"], imu_data["AccY"])
     stats["max_acc_h"] = imu_data["AccH"].max()
     stats["max_acc_v"] = imu_data["AccZ"].max()
     stats["max_acc"] = np.hypot(imu_data["AccH"], imu_data["AccZ"]).max()
     stats["average_velocity"] = stats["total_distance"] / stats["total_time"]
-    stats["max_altitude"] = gps_data["Z"].max()
-    stats["min_altitude"] = gps_data["Z"].min()
+    stats["max_altitude"] = gps_data["z"].max()
+    stats["min_altitude"] = gps_data["z"].min()
     stats["altitude_amp"] = stats["max_altitude"] - stats["min_altitude"]
-    stats["displacement_h"] = np.hypot(gps_data.iloc[-1]["X"] - gps_data.iloc[0]["X"], gps_data.iloc[-1]["Y"] - gps_data.iloc[0]["Y"])
+    stats["displacement_h"] = np.hypot(gps_data.iloc[-1]["x"] - gps_data.iloc[0]["x"], gps_data.iloc[-1]["y"] - gps_data.iloc[0]["y"])
     return stats

@@ -5,10 +5,36 @@ d3.csv("/data-endpoint", function (err, rows) {
     });
   }
 
+  var config = {
+    responsive: true,
+  };
+
   var x = unpack(rows, "x");
   var y = unpack(rows, "y");
   var z = unpack(rows, "z");
   var c = unpack(rows, "color");
+
+  const layout = {
+    margin: {
+      l: 0,
+      r: 0,
+      b: 0,
+      t: 0,
+      pad: 0,
+    },
+    scene: {
+      aspectmode: "data", // Start with cube to see if it fits, then switch to 'data'
+      xaxis: { visible: false, dtick: 10 }, // Grid lines every 10 units
+      yaxis: { visible: false, dtick: 10 },
+      zaxis: { visible: false, dtick: 10 },
+      camera: {
+        eye: { x: 5, y: 5, z: 5 }, // Move back slightly
+        center: { x: 0, y: 0, z: 0 }, // Ensure it's centered
+      },
+    },
+    autosize: true,
+  };
+
   Plotly.newPlot(
     "myDiv",
     [
@@ -26,8 +52,7 @@ d3.csv("/data-endpoint", function (err, rows) {
         },
       },
     ],
-    {
-      height: 640,
-    },
+    layout,
+    config,
   );
 });
