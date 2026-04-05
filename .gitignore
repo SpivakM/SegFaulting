@@ -2,3 +2,15 @@ uploads/
 data/
 .idea/
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.db-shm
+*.db-wal
+.env
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
