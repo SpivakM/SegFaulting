@@ -4,8 +4,8 @@ import logging
 import mimetypes
 import os
 import uuid
-from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from typing import Any
 
 import aiofiles
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -14,7 +14,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from db import create_session, get_session, init_db, purge_expired_sessions, update_session
 from services.flight_service import compute_stats, process_flight_data
 
 logging.basicConfig(
@@ -34,15 +33,11 @@ ALLOWED_EXTENSIONS = {".bin", ".log"}
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await init_db()
-    await purge_expired_sessions()
-    yield
+# In-memory session store: session_id -> metadata dict
+_sessions: dict[str, dict[str, Any]] = {}
 
 
-app = FastAPI(title="FileFlow", version="1.0.1", lifespan=lifespan)
+app = FastAPI(title="FileFlow", version="1.0.1")
 app.mount("/static", StaticFiles(directory=os.path.join(_BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(_BASE_DIR, "templates"))
 
@@ -80,8 +75,6 @@ async def handle_upload(
     tags: str = Form(default=""),
 ) -> RedirectResponse:
     """Stream the upload to disk (non-blocking) and persist session metadata."""
-    await purge_expired_sessions()
-
     original_filename = file.filename or "unknown_file"
     ext = os.path.splitext(original_filename)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -125,7 +118,7 @@ async def handle_upload(
         "path": dest_path,
     }
 
-    await create_session(session_id, metadata)
+    _sessions[session_id] = metadata
     logger.info(
         "Uploaded '%s' as session %s (%s)",
         original_filename,
@@ -142,7 +135,7 @@ async def results_page(request: Request, session_id: str = "") -> HTMLResponse:
     if not session_id:
         return RedirectResponse(url="/")
 
-    metadata = await get_session(session_id)
+    metadata = _sessions.get(session_id)
     if metadata is None:
         logger.warning("Session '%s' not found", session_id)
         return RedirectResponse(url="/")
@@ -170,7 +163,7 @@ async def results_page(request: Request, session_id: str = "") -> HTMLResponse:
             detail="Failed to process the flight log. Is the file a valid ArduPilot log?",
         )
 
-    await update_session(session_id, {"data_path": data_path})
+    _sessions[session_id]["data_path"] = data_path
 
     try:
         stats = compute_stats(gps_data, imu_data)
@@ -197,7 +190,7 @@ async def results_page(request: Request, session_id: str = "") -> HTMLResponse:
 async def get_data(session_id: str = "") -> FileResponse:
     """Return the processed GPS+velocity CSV for the given session."""
     if session_id:
-        metadata = await get_session(session_id)
+        metadata = _sessions.get(session_id)
         if metadata:
             data_path = metadata.get("data_path")
             if data_path and os.path.exists(data_path):
