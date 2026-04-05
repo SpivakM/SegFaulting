@@ -95,8 +95,9 @@ async def results_page(request: Request, upload_id: str) -> HTMLResponse:
 
     gps_data["color"] = imu_data["VelH"]
 
-    data_name = os.path.splitext(os.path.basename(data["path"]))[0] + ".csv"
-    gps_data[["x", "y", "z", "color"]].to_csv(os.path.join(DATA_DIR, data_name))
+    data_path = os.path.join(DATA_DIR, os.path.splitext(os.path.basename(data["path"]))[0] + ".csv")
+    gps_data[["x", "y", "z", "color"]].to_csv(data_path)
+    data["data_path"] = data_path
 
     return templates.TemplateResponse(
         name="results.html",
