@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import asynccontextmanager
 import mimetypes
 import os
 import uuid
@@ -6,14 +7,17 @@ from datetime import datetime
 
 import aiofiles
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 from log_parser import get_data_from_file
 from integrator import process_imu_data
 from gps_to_enu import calculate_distance, convertGPS_to_ENU
 
 app = FastAPI(title="FileFlow", version="1.0.1")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
@@ -32,7 +36,7 @@ async def upload_page(request: Request) -> HTMLResponse:
     """Page 1: File upload form."""
     return templates.TemplateResponse(
         name="upload.html",
-        request={"request": request},
+        request=request,
     )
 
 
@@ -95,7 +99,7 @@ async def results_page(request: Request, upload_id: str) -> HTMLResponse:
 
     gps_data["color"] = imu_data["VelH"]
 
-    data_path = os.path.join(DATA_DIR, os.path.splitext(os.path.basename(data["path"]))[0] + ".csv")
+    data_path = os.path.join(DATA_DIR, "data.csv")
     gps_data[["x", "y", "z", "color"]].to_csv(data_path)
     data["data_path"] = data_path
 
@@ -103,6 +107,18 @@ async def results_page(request: Request, upload_id: str) -> HTMLResponse:
         name="results.html",
         request=request,
         context={"data": data},
+    )
+
+@app.get("/data-endpoint")
+async def get_data():
+    file_path = "data/data.csv"
+
+    # Optional: Logic to create/update the CSV file here
+
+    return FileResponse(
+        path=file_path,
+        filename="data.csv",
+        media_type="text/csv"
     )
 
 
