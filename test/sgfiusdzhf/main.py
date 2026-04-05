@@ -1,11 +1,11 @@
 import asyncio
-from contextlib import asynccontextmanager
 import mimetypes
 import os
 import uuid
 from datetime import datetime
 
 import aiofiles
+import pandas as pd
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -16,20 +16,16 @@ from integrator import process_imu_data
 from gps_to_enu import calculate_distance, convertGPS_to_ENU
 
 app = FastAPI(title="FileFlow", version="1.0.1")
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 templates = Jinja2Templates(directory="templates")
 
 UPLOAD_DIR = "uploads"
 DATA_DIR = "data"
 CHUNK_SIZE = 1024 * 64  # 64 KB
 os.makedirs(name=UPLOAD_DIR, exist_ok=True)
+os.makedirs(name=DATA_DIR, exist_ok=True)
 
-# Словник у пам'яті. В однопотоковому asyncio базові операції зі словником (get, set)
-# є атомарними. Lock не потрібен, оскільки контекст перемикається лише на `await`.
-uploads: dict[str, dict] = {}
-
+latest_metadata: dict | None = None
 
 @app.get("/", response_class=HTMLResponse)
 async def upload_page(request: Request) -> HTMLResponse:
@@ -39,7 +35,6 @@ async def upload_page(request: Request) -> HTMLResponse:
         request=request,
     )
 
-
 @app.post("/upload")
 async def handle_upload(
         request: Request,
@@ -48,6 +43,16 @@ async def handle_upload(
         tags: str = Form(default=""),
 ) -> RedirectResponse:
     """Stream the upload to disk with aiofiles (non-blocking) and calculate size."""
+    global latest_metadata
+
+    if latest_metadata and "path" in latest_metadata:
+        old_path = latest_metadata["path"]
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except Exception as e:
+                print(f"Cleanup warning: {e}")
+
     upload_id = str(uuid.uuid4())
 
     # 1. Безпека: захист від Path Traversal та обробка None
@@ -64,7 +69,7 @@ async def handle_upload(
 
     mime_type, _ = mimetypes.guess_type(url=safe_filename)
 
-    metadata = {
+    latest_metadata = {
         "filename": original_filename,
         "content_type": file.content_type or mime_type or "application/octet-stream",
         "size_bytes": file_size,
@@ -75,52 +80,41 @@ async def handle_upload(
         "path": dest_path,
     }
 
-    # Атомарний запис завдяки GIL. Ніяких гонитов даних тут не буде.
-    uploads[upload_id] = metadata
+    return RedirectResponse(url="/results", status_code=303)
 
-    return RedirectResponse(url=f"/results/{upload_id}", status_code=303)
+@app.get("/results", response_class=HTMLResponse)
+async def results_page(request: Request) -> HTMLResponse:
+    if latest_metadata is None:
+        return RedirectResponse(url="/")
 
-
-@app.get("/results/{upload_id}", response_class=HTMLResponse)
-async def results_page(request: Request, upload_id: str) -> HTMLResponse:
-    """Page 2: Show metadata for the upload identified by upload_id."""
-    data = uploads.get(upload_id)
-    print(data)
-
-    if data is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Upload not found. It may have expired.",
-        )
-
-    gps_data, imu_data = get_data_from_file(data["path"])
+    gps_data, imu_data = get_data_from_file(latest_metadata["path"])
     gps_data = convertGPS_to_ENU(gps_data)
     imu_data = process_imu_data(imu_data)
 
-    gps_data["color"] = imu_data["VelH"]
+    gps_data = pd.merge_asof(gps_data, imu_data[["TimeUS", "VelH"]], on="TimeUS", direction="nearest")
+    gps_data.rename(columns={"TimeUS": "color"}, inplace=True)
 
     data_path = os.path.join(DATA_DIR, "data.csv")
     gps_data[["x", "y", "z", "color"]].to_csv(data_path)
-    data["data_path"] = data_path
+    latest_metadata["data_path"] = data_path
 
     return templates.TemplateResponse(
         name="results.html",
         request=request,
-        context={"data": data},
+        context={"data": latest_metadata},
     )
 
 @app.get("/data-endpoint")
 async def get_data():
-    file_path = "data/data.csv"
-
-    # Optional: Logic to create/update the CSV file here
-
+    file_path = os.path.join(DATA_DIR, "data.csv")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Data file not found.")
+        
     return FileResponse(
         path=file_path,
         filename="data.csv",
         media_type="text/csv"
     )
-
 
 def _human_size(num: int | float) -> str:
     """Convert a byte count to a human-readable string (B → TB)."""
