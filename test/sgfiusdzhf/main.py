@@ -6,6 +6,7 @@ from datetime import datetime
 
 import aiofiles
 import pandas as pd
+import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -98,10 +99,13 @@ async def results_page(request: Request) -> HTMLResponse:
     gps_data[["x", "y", "z", "color"]].to_csv(data_path)
     latest_metadata["data_path"] = data_path
 
+    context = _get_stats(gps_data, imu_data)
+    context["data"] = latest_metadata
+
     return templates.TemplateResponse(
         name="results.html",
         request=request,
-        context={"data": latest_metadata},
+        context=context,
     )
 
 @app.get("/data-endpoint")
@@ -123,3 +127,21 @@ def _human_size(num: int | float) -> str:
             return f"{num:.1f} {unit}"
         num /= 1024
     return f"{num:.1f} TB"
+
+def _get_stats(gps_data: pd.DataFrame, imu_data: pd.DataFrame) -> dict:
+    stats = dict()
+    stats["total_distance"] = calculate_distance(gps_data)
+    stats["max_velocity_h"] = imu_data["VelH"].max()
+    stats["max_velocity_v"] = imu_data["VelV"].max()
+    stats["max_velocity"] = np.hypot(imu_data["VelH"], imu_data["VelV"]).max()
+    stats["total_time"] = (imu_data.iloc[-1]["TimeUS"] - imu_data.iloc[0]["TimeUS"]) / 1000000 # Conversion to seconds
+    imu_data["AccH"] = np.hypot(imu_data["AccX"], imu_data["AccY"])
+    stats["max_acc_h"] = imu_data["AccH"].max()
+    stats["max_acc_v"] = imu_data["AccZ"].max()
+    stats["max_acc"] = np.hypot(imu_data["AccH"], imu_data["AccZ"]).max()
+    stats["average_velocity"] = stats["total_distance"] / stats["total_time"]
+    stats["max_altitude"] = gps_data["Z"].max()
+    stats["min_altitude"] = gps_data["Z"].min()
+    stats["altitude_amp"] = stats["max_altitude"] - stats["min_altitude"]
+    stats["displacement_h"] = np.hypot(gps_data.iloc[-1]["X"] - gps_data.iloc[0]["X"], gps_data.iloc[-1]["Y"] - gps_data.iloc[0]["Y"])
+    return stats
