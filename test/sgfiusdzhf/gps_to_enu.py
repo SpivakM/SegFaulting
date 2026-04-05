@@ -21,9 +21,9 @@ def convertGPS_to_ENU(gps_data: pd.DataFrame) -> pd.DataFrame:
         Lat0, Lon0, Alt0
     )
 
-    gps_data['X'] = e
-    gps_data['Y'] = n
-    gps_data['Z'] = u
+    gps_data['x'] = e
+    gps_data['y'] = n
+    gps_data['z'] = u
 
     return gps_data
 
@@ -49,5 +49,5 @@ if __name__ == "__main__":
     gps_data, _ = get_data_from_file(PATH)
     trajectory = convertGPS_to_ENU(gps_data)
 
-    print(trajectory[['TimeUS', 'E', 'N', 'U']])
+    print(trajectory[['TimeUS', 'x', 'y', 'z']])
     print(calculate_distance(gps_data))

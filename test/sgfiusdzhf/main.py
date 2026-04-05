@@ -9,11 +9,16 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from log_parser import get_data_from_file
+from integrator import process_imu_data
+from gps_to_enu import calculate_distance, convertGPS_to_ENU
+
 app = FastAPI(title="FileFlow", version="1.0.1")
 
 templates = Jinja2Templates(directory="templates")
 
 UPLOAD_DIR = "uploads"
+DATA_DIR = "data"
 CHUNK_SIZE = 1024 * 64  # 64 KB
 os.makedirs(name=UPLOAD_DIR, exist_ok=True)
 
@@ -83,6 +88,15 @@ async def results_page(request: Request, upload_id: str) -> HTMLResponse:
             status_code=404,
             detail="Upload not found. It may have expired.",
         )
+
+    gps_data, imu_data = get_data_from_file(data["path"])
+    gps_data = convertGPS_to_ENU(gps_data)
+    imu_data = process_imu_data(imu_data)
+
+    gps_data["color"] = imu_data["VelH"]
+
+    data_name = os.path.splitext(os.path.basename(data["path"]))[0] + ".csv"
+    gps_data[["x", "y", "z", "color"]].to_csv(os.path.join(DATA_DIR, data_name))
 
     return templates.TemplateResponse(
         name="results.html",
