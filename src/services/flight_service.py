@@ -92,11 +92,10 @@ def compute_stats(gps_data: pd.DataFrame, imu_data: pd.DataFrame) -> dict:
     total_time = (time_end - time_start) / 1_000_000  # µs → s
     stats["total_time"] = total_time
 
-    imu_copy = imu_data.copy()
-    imu_copy["AccH"] = np.hypot(imu_copy["AccX"], imu_copy["AccY"])
-    stats["max_acc_h"] = float(imu_copy["AccH"].max())
-    stats["max_acc_v"] = float(imu_copy["AccZ"].max())
-    stats["max_acc"] = float(np.hypot(imu_copy["AccH"], imu_copy["AccZ"]).max())
+    acc_h = np.hypot(imu_data["AccX"].to_numpy(), imu_data["AccY"].to_numpy())
+    stats["max_acc_h"] = float(acc_h.max())
+    stats["max_acc_v"] = float(imu_data["AccZ"].max())
+    stats["max_acc"] = float(np.hypot(acc_h, imu_data["AccZ"].to_numpy()).max())
 
     stats["average_velocity"] = stats["total_distance"] / total_time if total_time > 0 else 0.0
     stats["max_altitude"] = float(gps_data["z"].max())
